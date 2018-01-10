@@ -337,7 +337,7 @@ class QueuedMail extends CommonDBTM {
     * @return true if send false if not
    **/
    function sendMailById($ID) {
-      global $CFG_GLPI;
+      global $CFG_GLPI, $DB;
 
       if ($this->getFromDB($ID)) {
 
@@ -384,6 +384,39 @@ class QueuedMail extends CommonDBTM {
                   }
                }
             }
+            
+            // ----------------- START :  Ajout des pièces jointes ---------------------- //
+            if ($this->fields["itemtype"] == "Ticket" && $this->fields["items_id"] > 1 && $CFG_GLPI['attach_ticket_documents_to_mail'] == 1 ) {
+               $ticket = new Ticket();
+               // Check if ticket  exists
+                if ($ticket->getFromDB($this->fields["items_id"])) {
+                   
+                  $query = "SELECT
+                              id,
+                              documents_id
+                 FROM `glpi_documents_items`
+                 WHERE items_id = '".$this->fields["items_id"]."'
+                       AND itemtype = 'Ticket'
+                       AND date_mod = '".$this->fields['create_time']."'";
+                   
+                  $result = $DB->query($query);
+                  if ($DB->numrows($result)) {
+                     while ($doc_data = $DB->fetch_assoc($result)) {
+                        if (!empty($doc_data['id'])) {
+                           $docAttachment = new Document();
+                           $docAttachment->getFromDB($doc_data['documents_id']);
+                           $mmail->AddAttachment(GLPI_DOC_DIR."/".$docAttachment->fields['filepath'],
+                                 $docAttachment->fields['filename'],
+                                 'base64',
+                                 $docAttachment->fields['mime']);
+                        }
+                     }
+                  }
+               }
+            }
+            // ----------------- END :  Ajout des pièces jointes ---------------------- //
+            
+            
             $mmail->Body   .= $this->fields['body_html'];
             $mmail->AltBody = $this->fields['body_text'];
          }
