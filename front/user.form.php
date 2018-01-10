@@ -65,8 +65,7 @@ if (isset($_GET['getvcard'])) {
    $user->check(-1, CREATE, $_POST);
 
    // Pas de nom pas d'ajout
-   if (!empty($_POST["name"])
-       && ($newID = $user->add($_POST))) {
+   if (($newID = $user->add($_POST))) { // HOTFIXE GLPI 9.1.1 JC20161220 Ce n'est pas a se script de faire cette vérification car sinon pas de message d'erreur !!!!
       Event::log($newID, "users", 4, "setup",
                  sprintf(__('%1$s adds the item %2$s'), $_SESSION["glpiname"], $_POST["name"]));
       if ($_SESSION['glpibackcreated']) {
